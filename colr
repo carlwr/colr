@@ -84,17 +84,19 @@ exit 0
 setopt   local_options NO_unset pipefail NO_monitor NO_glob
 
 # internal parameters:
-local DBG=0
-local DBG_BYPASS=0
-local -a __grep=( ggrep --color=always --line-buffered )
-local -a clrDefDefault=( 
+DBG=0
+DBG_BYPASS=0
+
+__grep=( ggrep --color=always --line-buffered )
+
+clrDefDefault=( 
   ^error                      -i  '01;31'  # red
   ^warning                    -i  '01;33'  # yellow
   )
 
 # parse arguments:
-local -a cmdArr=()
-local -a clrDef=()
+cmdArr=()
+clrDef=()
 while (( $#>0 )) && [[ ! $1 =~ '--colorDef|-_c' ]]; do cmdArr+=$1; shift; done
 while (( $#>0 )) && [[   $1 =~ '--colorDef|-_c' ]]; do :         ; shift; done
 while (( $#>0 ))                                  ; do clrDef+=$1; shift; done
@@ -107,7 +109,8 @@ while (( $#>0 ))                                  ; do clrDef+=$1; shift; done
     exit 1
   }
 
-__colorize() {
+# main function:
+colorize() {
   if (( $# >= 3 ))
   then
     local    pat="($1)|$"
@@ -116,7 +119,7 @@ __colorize() {
     shift 3
     GREP_COLORS="ms=$color"           \
       $__grep "${opts[@]}" -P "$pat"  \
-      | __colorize "$@"
+      | colorize "$@"
   else
     cat -u
     (( $# > 0 )) && >&2 echo "$self: warning: unexpected colorDef element"
@@ -154,8 +157,8 @@ local P_stdERR=/tmp/P_${rnd}_${self}_stdERR
                mkfifo $P_stdout
   ! __col &&   mkfifo $P_stdERR
 
-               < $P_stdout __colorize "${clrDef[@]}"     &
-  ! __col &&   < $P_stdERR __colorize "${clrDef[@]}" >&2 &
+               < $P_stdout colorize "${clrDef[@]}"     &
+  ! __col &&   < $P_stdERR colorize "${clrDef[@]}" >&2 &
 
   ! __col &&   local cmdErrTo=$P_stdERR \
           ||   local cmdErrTo=$P_stdout
