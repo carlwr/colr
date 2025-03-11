@@ -1,4 +1,6 @@
 
+self=$0:t
+
 # ------------------------------------------------------------- #
 #                              help                             #
 # ------------------------------------------------------------- #
@@ -99,8 +101,8 @@ while (( $#>0 ))                                  ; do clrDef+=$1; shift; done
 # fix + check colors array:
 (( $#clrDef == 0 )) && clrDef=("${(@)clrDefDefault}")
 (( (${#clrDef} % 3) != 0 )) &&
-  { >&2 echo "$0: colorDef: ${#clrDef} elements, expected multiple of 3"
-    return 1
+  { >&2 echo "$self: colorDef: ${#clrDef} elements, expected multiple of 3"
+    exit 1
   }
 
 __colorize() {
@@ -115,7 +117,7 @@ __colorize() {
       | __colorize "$@"
   else
     cat -u
-    (( $# > 0 )) && >&2 echo "$0: warning: unexpected colorDef element"
+    (( $# > 0 )) && >&2 echo "$self: warning: unexpected colorDef element"
   fi
   }
 
@@ -136,8 +138,8 @@ fi
 zmodload zsh/datetime
 local rnd=$(( (epochtime[2]/1000) % 100 ))
 
-local P_stdout=/tmp/P_${rnd}_${0}_stdout
-local P_stdERR=/tmp/P_${rnd}_${0}_stdERR
+local P_stdout=/tmp/P_${rnd}_${self}_stdout
+local P_stdERR=/tmp/P_${rnd}_${self}_stdERR
 
 [[ ${COLR_COLLECT-} ]] && __col() true  \
                        || __col() false
