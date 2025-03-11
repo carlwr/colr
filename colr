@@ -1,5 +1,7 @@
+#!/usr/bin/env zsh
 
 self=$0:t
+
 
 # ------------------------------------------------------------- #
 #                              help                             #
@@ -71,7 +73,7 @@ EXAMPLES
 
 EOF
 echo
-return 0
+exit 0
 }
 
 
@@ -127,7 +129,7 @@ then  typeset -p 1 cmdArr
 fi
 if (( DBG_BYPASS ))
 then  "${(@)cmdArr}"
-      return 0
+      exit 0
 fi
 
 
@@ -177,39 +179,3 @@ local P_stdERR=/tmp/P_${rnd}_${self}_stdERR
 
 }
 
-
-
-# ---
-
-# local P_stdout=/tmp/P_${rnd}_${0}_stdout
-# local P_stdERR=/tmp/P_${rnd}_${0}_stdERR
-# 
-# { rm -f  $P_stdout(Np) $P_stdERR(Np)
-#   mkfifo $P_stdout     $P_stdERR
-# 
-#   < $P_stdout __colorize "${clrDef[@]}"     &
-#   < $P_stdERR __colorize "${clrDef[@]}" >&2 &
-# 
-#   local collect=1
-#   if [[ $collect ]]
-#   then >&2 echo "($0: collect is active)"
-# 
-#        # >&2 echo "($0: stderr -> stdout)"
-#        # echo >$P_stdERR
-#        # sleep 0.4
-#        # "${(@)cmdArr:-cat}" 1>$P_stdout 2>$P_stdout
-# 
-#        # >&2 echo "($0: stdout -> stderr)"
-#        # echo >$P_stdout
-#        # sleep 0.4
-#        # "${(@)cmdArr:-cat}" 1>$P_stdERR 2>$P_stdERR
-# 
-# 
-#   else "${(@)cmdArr:-cat}" 1>$P_stdout 2>$P_stdERR
-#   fi
-# 
-# } always {
-#   wait
-#   rm -f $P_stdout(Np) $P_stdERR(Np)
-#   unfunction __colorize
-# }
