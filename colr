@@ -103,21 +103,6 @@ while (( $#>0 ))                                  ; do clrDef+=$1; shift; done
     return 1
   }
 
-__colorize0() {
-  >&2 echo __colorize0 invoked
-  local msg="fd $1"; shift
-
-  tee >( read -rd '' lines
-         # eval 'sleep 0.$(( (epochtime[2]/1000) % 100 ))'
-         >&2 printf '%s  TO   __colorize: %s\n' $msg "$(typeset -p lines)"
-       ) \
-  | __colorize "$@" \
-  | tee >( read -rd '' lines
-           # eval 'sleep 0.$(( (epochtime[2]/1000) % 100 ))'
-           >&2 printf '%s  FROM __colorize: %s\n' $msg "$(typeset -p lines)"
-         )
-  }
-
 __colorize() {
   if (( $# >= 3 ))
   then
@@ -148,17 +133,8 @@ fi
 #                          main program                         #
 # ------------------------------------------------------------- #
 
-# local rnd=$(eval 'echo $RANDOM')
-# echo "(colr: rnd: $rnd)"
-
 zmodload zsh/datetime
 local rnd=$(( (epochtime[2]/1000) % 100 ))
-
-# local -a fd_P
-# fd_P=(
-#   1 /tmp/P_${rnd}_${0}_stdout
-#   2 /tmp/P_${rnd}_${0}_stdERR
-#   )
 
 local P_stdout=/tmp/P_${rnd}_${0}_stdout
 local P_stdERR=/tmp/P_${rnd}_${0}_stdERR
@@ -196,7 +172,6 @@ local P_stdERR=/tmp/P_${rnd}_${0}_stdERR
   sleep 0.3
   () { setopt glob; rm -f $P_stdout(Np) $P_stdERR(Np)
      }
-  unfunction __colorize __colorize0 __col
 
 }
 
