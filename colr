@@ -1,0 +1,238 @@
+
+# ------------------------------------------------------------- #
+#                              help                             #
+# ------------------------------------------------------------- #
+
+[[ $1 = '-h' || $1 = --help ]] &&
+{
+echo
+read -erd '' <<'EOF' | sed -E 's \$0 '"$0 "
+NAME
+
+  $0 - colorize stdin or a stdout of a program
+
+
+SYNOPSIS
+
+  $0 [program [args]] [ [--colorDef | -_c] [regex grepArg ansicolor] [..]]
+
+
+DESCRIPTION
+
+  If no `program` and optional `args` is provided, stdin is colorized.
+
+  If no `--colorDef` argument + following formatting rules triples is provided, some default formatting rules are applied.
+
+
+OPTIONS
+
+  -_c, --colorDef
+  
+
+ENVIRONMENT
+
+  COLR_COLLECT
+    If non-null, then with the `program` argument form, `programs` stderr is immediately merged with its stdout, after which the merged output will undergo the colorization process. The colorized output is then written to $0-s stdout. This is intended to avoid stdout/stderr out-of-order problems.
+
+EXAMPLES
+
+  Will use default formatting rules, will produce identical output:
+
+    $0 print -l message error warning
+
+    print -l message error warning | $0
+    
+    { echo message
+      echo error
+      echo warning >&2
+    } | $0
+
+  Will colorize kernel version in blue and any HH:MM:SS times in green:
+
+    $0 uname -a --colorDef \
+      'kernel version [\d\.]+'  -i  '38;5;117' \
+      ' (\d\d|:)+ '             ''  '38;5;119'
+
+  Illustrating COLR_COLLECT:
+
+    { COLR_COLLECT='' \
+      colr zsh -c 'echo warning-text >&2' \
+    
+      COLR_COLLECT='1' \
+      colr zsh -c 'echo warning-text >&2'
+    
+    } | sed -E 's/$/  **on stdout**/'
+
+    # output ("warning" colored on both lines):
+    #   warning-text
+    #   warning-text  **on stdout**
+
+EOF
+echo
+return 0
+}
+
+
+# ------------------------------------------------------------- #
+#                         implementation                        #
+# ------------------------------------------------------------- #
+
+setopt   local_options NO_unset pipefail NO_monitor NO_glob
+
+# internal parameters:
+local DBG=0
+local DBG_BYPASS=0
+local -a __grep=( ggrep --color=always --line-buffered )
+local -a clrDefDefault=( 
+  ^error                      -i  '01;31'  # red
+  ^warning                    -i  '01;33'  # yellow
+  )
+
+# parse arguments:
+local -a cmdArr=()
+local -a clrDef=()
+while (( $#>0 )) && [[ ! $1 =~ '--colorDef|-_c' ]]; do cmdArr+=$1; shift; done
+while (( $#>0 )) && [[   $1 =~ '--colorDef|-_c' ]]; do :         ; shift; done
+while (( $#>0 ))                                  ; do clrDef+=$1; shift; done
+
+
+# fix + check colors array:
+(( $#clrDef == 0 )) && clrDef=("${(@)clrDefDefault}")
+(( (${#clrDef} % 3) != 0 )) &&
+  { >&2 echo "$0: colorDef: ${#clrDef} elements, expected multiple of 3"
+    return 1
+  }
+
+__colorize0() {
+  >&2 echo __colorize0 invoked
+  local msg="fd $1"; shift
+
+  tee >( read -rd '' lines
+         # eval 'sleep 0.$(( (epochtime[2]/1000) % 100 ))'
+         >&2 printf '%s  TO   __colorize: %s\n' $msg "$(typeset -p lines)"
+       ) \
+  | __colorize "$@" \
+  | tee >( read -rd '' lines
+           # eval 'sleep 0.$(( (epochtime[2]/1000) % 100 ))'
+           >&2 printf '%s  FROM __colorize: %s\n' $msg "$(typeset -p lines)"
+         )
+  }
+
+__colorize() {
+  if (( $# >= 3 ))
+  then
+    local    pat="($1)|$"
+    local -a opts=( ${(s[ ])2} )
+    local    color=$3
+    shift 3
+    GREP_COLORS="ms=$color"           \
+      $__grep "${opts[@]}" -P "$pat"  \
+      | __colorize "$@"
+  else
+    cat -u
+    (( $# > 0 )) && >&2 echo "$0: warning: unexpected colorDef element"
+  fi
+  }
+
+if (( DBG ))
+then  typeset -p 1 cmdArr
+      typeset -p 1 clrDef
+fi
+if (( DBG_BYPASS ))
+then  "${(@)cmdArr}"
+      return 0
+fi
+
+
+# ------------------------------------------------------------- #
+#                          main program                         #
+# ------------------------------------------------------------- #
+
+# local rnd=$(eval 'echo $RANDOM')
+# echo "(colr: rnd: $rnd)"
+
+zmodload zsh/datetime
+local rnd=$(( (epochtime[2]/1000) % 100 ))
+
+# local -a fd_P
+# fd_P=(
+#   1 /tmp/P_${rnd}_${0}_stdout
+#   2 /tmp/P_${rnd}_${0}_stdERR
+#   )
+
+local P_stdout=/tmp/P_${rnd}_${0}_stdout
+local P_stdERR=/tmp/P_${rnd}_${0}_stdERR
+
+[[ ${COLR_COLLECT-} ]] && __col() true  \
+                       || __col() false
+
+(( DBG )) && { __col && <<<collect_yes || <<<collect_NO }
+
+
+{ rm -f  $P_stdout(Np) $P_stdERR(Np)
+
+               mkfifo $P_stdout
+  ! __col &&   mkfifo $P_stdERR
+
+               < $P_stdout __colorize "${clrDef[@]}"     &
+  ! __col &&   < $P_stdERR __colorize "${clrDef[@]}" >&2 &
+
+  ! __col &&   local cmdErrTo=$P_stdERR \
+          ||   local cmdErrTo=$P_stdout
+  
+  
+  (( 0 )) && {
+    local cmd
+    printf 'cmd   :   %s\n' "${(@)cmdArr:-cat}"
+    printf 'cmd q :   %s\n' "${(@q)cmdArr:-cat}"
+    }
+
+
+  eval "${(@q)cmdArr:-cat}" 1>$P_stdout 2>$cmdErrTo
+
+
+} always {
+  wait
+  sleep 0.3
+  () { setopt glob; rm -f $P_stdout(Np) $P_stdERR(Np)
+     }
+  unfunction __colorize __colorize0 __col
+
+}
+
+
+
+# ---
+
+# local P_stdout=/tmp/P_${rnd}_${0}_stdout
+# local P_stdERR=/tmp/P_${rnd}_${0}_stdERR
+# 
+# { rm -f  $P_stdout(Np) $P_stdERR(Np)
+#   mkfifo $P_stdout     $P_stdERR
+# 
+#   < $P_stdout __colorize "${clrDef[@]}"     &
+#   < $P_stdERR __colorize "${clrDef[@]}" >&2 &
+# 
+#   local collect=1
+#   if [[ $collect ]]
+#   then >&2 echo "($0: collect is active)"
+# 
+#        # >&2 echo "($0: stderr -> stdout)"
+#        # echo >$P_stdERR
+#        # sleep 0.4
+#        # "${(@)cmdArr:-cat}" 1>$P_stdout 2>$P_stdout
+# 
+#        # >&2 echo "($0: stdout -> stderr)"
+#        # echo >$P_stdout
+#        # sleep 0.4
+#        # "${(@)cmdArr:-cat}" 1>$P_stdERR 2>$P_stdERR
+# 
+# 
+#   else "${(@)cmdArr:-cat}" 1>$P_stdout 2>$P_stdERR
+#   fi
+# 
+# } always {
+#   wait
+#   rm -f $P_stdout(Np) $P_stdERR(Np)
+#   unfunction __colorize
+# }
