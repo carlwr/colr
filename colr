@@ -9,20 +9,20 @@ self=$0:t
 [[ $1 = '-h' || $1 = --help ]] &&
 {
 echo
-read -erd '' <<'EOF' | sed -E 's \$0 '"$0 "
+read -erd '' <<'EOF'
 NAME
 
-  $0 - colorize stdin or a stdout of a program
+  colr - colorize text on stdin, or run a util and colorize its output
 
 
 SYNOPSIS
 
-  $0 [program [args]] [ [--colorDef | -_c] [regex grepArg ansicolor] [..]]
+  colr [util [util-opt]...] [[--colorDef|-_c] [RE grepOpt ansicolor]...]
 
 
 DESCRIPTION
 
-  If no `program` and optional `args` is provided, stdin is colorized.
+  If no `util` is provided, text on stdin is colorized.
 
   If no `--colorDef` argument + following formatting rules triples is provided, some default formatting rules are applied.
 
@@ -35,24 +35,25 @@ OPTIONS
 ENVIRONMENT
 
   COLR_COLLECT
-    If non-null, then with the `program` argument form, `programs` stderr is immediately merged with its stdout, after which the merged output will undergo the colorization process. The colorized output is then written to $0-s stdout. This is intended to avoid stdout/stderr out-of-order problems.
+    If non-null, then with the `util` form, stderr is immediately merged with its stdout, after which the merged output will undergo the colorization process. The colorized output is then written to colr-s stdout. This is intended to avoid stdout/stderr out-of-order problems.
+
 
 EXAMPLES
 
   Will use default formatting rules, will produce identical output:
 
-    $0 print -l message error warning
+    colr print -l message error warning
 
-    print -l message error warning | $0
-    
+    print -l message error warning | colr
+
     { echo message
       echo error
       echo warning >&2
-    } | $0
+    } | colr
 
   Will colorize kernel version in blue and any HH:MM:SS times in green:
 
-    $0 uname -a --colorDef \
+    colr uname -a --colorDef \
       'kernel version [\d\.]+'  -i  '38;5;117' \
       ' (\d\d|:)+ '             ''  '38;5;119'
 
@@ -60,10 +61,10 @@ EXAMPLES
 
     { COLR_COLLECT='' \
       colr zsh -c 'echo warning-text >&2' \
-    
+
       COLR_COLLECT='1' \
       colr zsh -c 'echo warning-text >&2'
-    
+
     } | sed -E 's/$/  **on stdout**/'
 
     # output ("warning" colored on both lines):
