@@ -2,7 +2,6 @@
 
 self=$0:t
 
-
 # ------------------------------------------------------------- #
 #                              help                             #
 # ------------------------------------------------------------- #
@@ -31,7 +30,7 @@ DESCRIPTION
 OPTIONS
 
   -_c, --colorDef
-  
+
 
 ENVIRONMENT
 
@@ -89,7 +88,7 @@ DBG_BYPASS=0
 
 __grep=( ggrep --color=always --line-buffered )
 
-clrDefDefault=( 
+clrDefDefault=(
   ^error                      -i  '01;31'  # red
   ^warning                    -i  '01;33'  # yellow
   )
@@ -100,7 +99,6 @@ clrDef=()
 while (( $#>0 )) && [[ ! $1 =~ '--colorDef|-_c' ]]; do cmdArr+=$1; shift; done
 while (( $#>0 )) && [[   $1 =~ '--colorDef|-_c' ]]; do :         ; shift; done
 while (( $#>0 ))                                  ; do clrDef+=$1; shift; done
-
 
 # fix + check colors array:
 (( $#clrDef == 0 )) && clrDef=("${(@)clrDefDefault}")
@@ -162,14 +160,12 @@ local P_stdERR=/tmp/P_${rnd}_${self}_stdERR
 
   ! __col &&   local cmdErrTo=$P_stdERR \
           ||   local cmdErrTo=$P_stdout
-  
-  
+
   (( 0 )) && {
     local cmd
     printf 'cmd   :   %s\n' "${(@)cmdArr:-cat}"
     printf 'cmd q :   %s\n' "${(@q)cmdArr:-cat}"
     }
-
 
   eval "${(@q)cmdArr:-cat}" 1>$P_stdout 2>$cmdErrTo
 
@@ -181,4 +177,3 @@ local P_stdERR=/tmp/P_${rnd}_${self}_stdERR
      }
 
 }
-
