@@ -162,12 +162,6 @@ local P_stdERR=/tmp/P_${rnd}_${self}_stdERR
   ! __col &&   local cmdErrTo=$P_stdERR \
           ||   local cmdErrTo=$P_stdout
 
-  (( 0 )) && {
-    local cmd
-    printf 'cmd   :   %s\n' "${(@)cmdArr:-cat}"
-    printf 'cmd q :   %s\n' "${(@q)cmdArr:-cat}"
-    }
-
   eval "${(@q)cmdArr:-cat}" 1>$P_stdout 2>$cmdErrTo
 
 
