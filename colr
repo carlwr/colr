@@ -81,6 +81,8 @@ exit 0
 #                         implementation                        #
 # ------------------------------------------------------------- #
 
+# Using `grep` for colorization: a choice that is both odd and seemingly without benefits. But that's how I once started off this script, and until I get around to re-implementing the core in a sounder way, that's what we have. Personal legacy code.
+
 setopt   local_options NO_unset pipefail NO_monitor NO_glob
 
 # internal parameters:
@@ -118,11 +120,14 @@ colorize() {
     shift 3
     GREP_COLORS="ms=$color"           \
       $__grep "${opts[@]}" -P "$pat"  \
-      | colorize "$@"
+      | colorize "$@"  # <- recursion
   else
     cat -u
     (( $# > 0 )) && >&2 echo "$self: warning: unexpected colorDef element"
   fi
+  # implementation notes:
+  #   no tail call optimization in zsh; hence this function is not written to be able to make use of such
+  #   consequentially, this implementation does not scale with large colorDef tables (but that's unlikely to be a problem)
   }
 
 if (( DBG ))
@@ -140,10 +145,11 @@ fi
 # ------------------------------------------------------------- #
 
 zmodload zsh/datetime
-local rnd=$(( (epochtime[2]/1000) % 100 ))
+local rnd=$(( (epochtime[2]/1000) % 10000 ))
 
 local P_stdout=/tmp/P_${rnd}_${self}_stdout
 local P_stdERR=/tmp/P_${rnd}_${self}_stdERR
+  # TODO: don't hard-code /tmp/; instead use mktemp etc.
 
 [[ ${COLR_COLLECT-} ]] && __col() true  \
                        || __col() false
