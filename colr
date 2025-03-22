@@ -37,6 +37,9 @@ ENVIRONMENT
   COLR_COLLECT
     If non-null, then with the `util` form, stderr is immediately merged with its stdout, after which the merged output will undergo the colorization process. The colorized output is then written to colr-s stdout. This is intended to avoid stdout/stderr out-of-order problems.
 
+  COLR_NAMEIFY
+    If non-null, then all single-quoted substrings of the processed text additionally undergoes named directory substitution.
+
 
 EXAMPLES
 
@@ -56,6 +59,11 @@ EXAMPLES
     colr uname -a --colorDef \
       'kernel version [\d\.]+'  -i  '38;5;117' \
       ' (\d\d|:)+ '             ''  '38;5;119'
+
+  Will print "a dir: '~/subdir'":
+
+    print "a dir: '$HOME/subdir'" \
+    | COLR_NAMEIFY=1 colr
 
   Illustrating COLR_COLLECT:
 
@@ -130,6 +138,24 @@ colorize() {
   #   consequentially, this implementation does not scale with large colorDef tables (but that's unlikely to be a problem)
   }
 
+# substitute named dirs (opt-in):
+nameify() {
+  ! (( ${COLR_NAMEIFY-0} )) && { cat; return; }
+  local -r tick=\'
+  local line tokenized nameified joinified
+  while IFS= read -rd $'\n' line
+  do
+    tokenized=( "${(@)${(@ps[$tick])line}}" )
+    nameified=( "${(@D)tokenized}"      )
+    joinified=${(pj[$tick])"${(@Q)nameified}"}
+    print -r -- "$joinified"
+  done
+  if (( ${DBG_NAMEIFY-0} )) {
+    echo && typeset -p1 tokenized nameified joinified \
+            | sed 's/^/  /'
+    }
+  }
+
 if (( DBG ))
 then  typeset -p 1 cmdArr
       typeset -p 1 clrDef
@@ -162,8 +188,8 @@ local P_stdERR=/tmp/P_${rnd}_${self}_stdERR
                mkfifo $P_stdout
   ! __col &&   mkfifo $P_stdERR
 
-               < $P_stdout colorize "${clrDef[@]}"     &
-  ! __col &&   < $P_stdERR colorize "${clrDef[@]}" >&2 &
+               < $P_stdout nameify  |  colorize "${clrDef[@]}"       &
+  ! __col &&   < $P_stdERR nameify  |  colorize "${clrDef[@]}"  >&2  &
 
   ! __col &&   local cmdErrTo=$P_stdERR \
           ||   local cmdErrTo=$P_stdout
@@ -178,3 +204,33 @@ local P_stdERR=/tmp/P_${rnd}_${self}_stdERR
      }
 
 }
+
+return
+
+
+# ------------------------------------------------------------- #
+#                             (misc)                            #
+# ------------------------------------------------------------- #
+
+__nameify_test() {
+
+  str0="x ' \' \$ '\$' y";
+  <<< "$str0"
+  <<< "$str0" | nameify
+
+  str1="x '/Users/carl' y";
+  <<< "$str1"
+  <<< "$str1" | nameify
+
+  str2="x ' '/Users/carl' y '/Users/carl/has space/' z";
+  <<< "$str2"
+  <<< "$str2" | nameify
+
+  echo
+  arr_all=( "$str0" "$str1" "$str2" )
+  str_all=${(F)arr_all}
+  <<< "$str_all"; echo
+  <<< "$str_all" | nameify
+  }
+
+unfunction __nameify_test
