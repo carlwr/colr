@@ -3,7 +3,6 @@ SHELL         := /usr/bin/env zsh
 MAKEFLAGS     := --no-builtin-rules         \
                  --warn-undefined-variables \
                  --no-print-directory
-.RECIPEPREFIX := $(subst ,, )
 
 
 repoDirName   !=  <<<$${PWD:t1}
@@ -14,7 +13,7 @@ backupDir     :=  ../.backup/$(repoDirName)
 .PHONY:\
 all
 all:
-  @echo '(no "all" target yet)'
+	@echo '(no "all" target yet)'
 
 
 # ------------------------------------------------------------- #
@@ -34,14 +33,16 @@ backup
 backup: suffix       := $(if $(value SUFFIX),_$(SUFFIX),)
 backup: archive_name := $(shell date "+%Y-%m-%d_%H.%M.%S")$(suffix).tgz
 backup:
-  @mkdir -p $(backupDir)
-  gtar -c -z \
-    --file       $(backupDir)/$(archive_name) \
-    --directory  ..           \
-    --exclude    ".DS_Store"  \
-    --exclude-vcs-ignores     \
-    $(repoDirName)
-  @echo '\ncreated archive:'
-  @lsd -l --color always $(backupDir)/$(archive_name)
-  @printf '(%d archived files)\n' \
-          "$$(gtar --list -f $(backupDir)/$(archive_name) | wc -l)"
+	@mkdir -p $(backupDir)
+	gtar -c -z \
+	  --file       $(backupDir)/$(archive_name) \
+	  --directory  ..           \
+	  --exclude    ".DS_Store"  \
+	  --exclude-vcs-ignores     \
+	  $(repoDirName)
+	@echo '\ncreated archive:'
+	@lsd -l --color always $(backupDir)/$(archive_name)
+	@printf '(%d archived files)\n' \
+	        "$$(gtar --list -f $(backupDir)/$(archive_name) | wc -l)"
+
+
