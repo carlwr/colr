@@ -8,7 +8,6 @@ self=$0:t
 
 [[ $1 = '-h' || $1 = --help ]] &&
 {
-echo
 read -erd '' <<'EOF'
 NAME
 
@@ -17,7 +16,11 @@ NAME
 
 SYNOPSIS
 
-  colr [util [util-opt]...] [[--colorDef|-_c] [RE grepOpt ansicolor]...]
+  cmd | colr
+
+  colr util [util-opt]...
+
+  colr util [util-opt]... [--colorDef|-_c] [RE grepOpt ansicolor]...
 
 
 DESCRIPTION
@@ -234,3 +237,4 @@ __nameify_test() {
   }
 
 unfunction __nameify_test
+
