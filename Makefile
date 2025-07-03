@@ -46,3 +46,16 @@ backup:
 	        "$$(gtar --list -f $(backupDir)/$(archive_name) | wc -l)"
 
 
+# ------------------------------------------------------------- #
+#                             readme                            #
+# ------------------------------------------------------------- #
+
+README.md: colr
+	> $@ printf '%s\n' \
+	  '# `colr`' \
+	  '_colorize text on stdin, or run a util and colorize its output_' \
+	  '```help'
+	>>$@ { ./colr --help | fmt }
+	>>$@ printf '%s\n' \
+	  '```' \
+	  ''
